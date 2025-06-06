@@ -1,0 +1,31 @@
+name: artisan_ai # Your Flutter project name
+description: Your intelligent partner for crafting powerful AI prompts.
+publish_to: 'none' 
+version: 1.0.0+1 # Or your current version
+
+environment:
+  sdk: '>=3.0.0 <4.0.0' # Or your current Dart SDK constraint
+
+dependencies:
+  flutter:
+    sdk: flutter
+  
+  shared_preferences: ^2.2.3 # You already have this
+
+  # --- ADD THESE NEW DEPENDENCIES ---
+  http: ^1.2.1                 # For making HTTP requests to your backend
+  flutter_secure_storage: ^9.2.2 # For securely storing the JWT token
+  provider: ^6.1.2               # For simple state management (auth state)
+  # --- END OF NEW DEPENDENCIES ---
+
+  cupertino_icons: ^1.0.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
+  # assets:
+  #   - images/a_dot_burr.jpeg
