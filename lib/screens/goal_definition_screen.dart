@@ -1,19 +1,23 @@
 // lib/screens/goal_definition_screen.dart
 import 'package:flutter/material.dart';
 import 'package:artisan_ai/screens/specify_output_screen.dart';
+import 'package:flutter/foundation.dart'; // For kDebugMode
 
 class GoalDefinitionScreen extends StatefulWidget {
   const GoalDefinitionScreen({super.key});
 
   @override
-  _GoalDefinitionScreenState createState() => _GoalDefinitionScreenState();
+  // Corrected: Make state class public
+  GoalDefinitionScreenState createState() => GoalDefinitionScreenState();
 }
 
-class _GoalDefinitionScreenState extends State<GoalDefinitionScreen> {
-  final _goalController = TextEditingController();
+class GoalDefinitionScreenState extends State<GoalDefinitionScreen> {
   final _formKey = GlobalKey<FormState>();
-
-  final List<String> _quickGoals = ["Write", "Summarize", "Code", "Brainstorm", "Translate", "Advise"];
+  final _goalController = TextEditingController();
+  // Corrected: Made the list of strings const
+  final List<String> _quickGoals = const [
+    "Write", "Summarize", "Code", "Brainstorm", "Translate", "Advise"
+  ];
   String? _selectedQuickGoal;
 
   @override
@@ -26,13 +30,15 @@ class _GoalDefinitionScreenState extends State<GoalDefinitionScreen> {
     if (_formKey.currentState!.validate()) {
       String userGoal = _goalController.text.trim();
       if (_selectedQuickGoal != null && userGoal.isEmpty) {
-         userGoal = _selectedQuickGoal!; // Use chip text if field is empty but chip selected
+         userGoal = _selectedQuickGoal!;
       } else if (_selectedQuickGoal != null && userGoal.isNotEmpty && !userGoal.toLowerCase().contains(_selectedQuickGoal!.toLowerCase())) {
-        // If chip selected and text field has different content, prepend chip text for context
         userGoal = "$_selectedQuickGoal: $userGoal";
       }
       
-      print("User Goal Captured: $userGoal");
+      // Corrected: Wrapped print in kDebugMode check
+      if (kDebugMode) {
+        print("User Goal Captured: $userGoal");
+      }
 
       Navigator.push(
         context,
@@ -52,7 +58,7 @@ class _GoalDefinitionScreenState extends State<GoalDefinitionScreen> {
       appBar: AppBar(
         title: const Text('Step 1: Define Your Goal'),
         leading: Navigator.canPop(context) ? IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new), // Updated icon
+          icon: const Icon(Icons.arrow_back_ios_new),
           onPressed: () => Navigator.of(context).pop(),
         ) : null,
       ),
@@ -69,9 +75,8 @@ class _GoalDefinitionScreenState extends State<GoalDefinitionScreen> {
                   style: textTheme.headlineMedium,
                 ),
                 const SizedBox(height: 12),
-                Text( // UPDATED HELPER TEXT
+                const Text(
                   'Be specific! e.g., "Draft a persuasive marketing email for a new fitness app targeting young professionals," or "Explain the concept of black holes to a high school student as if you were Carl Sagan."',
-                  style: textTheme.bodyMedium,
                 ),
                 const SizedBox(height: 24),
                 Text(
@@ -99,7 +104,7 @@ class _GoalDefinitionScreenState extends State<GoalDefinitionScreen> {
                   )).toList(),
                 ),
                 const SizedBox(height: 24),
-                Expanded( // Allow text field to take more space if needed
+                Expanded(
                   child: TextFormField(
                     controller: _goalController,
                     decoration: const InputDecoration(

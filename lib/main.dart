@@ -1,7 +1,7 @@
 // lib/main.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:flutter/foundation.dart'; // <-- ADDED THIS IMPORT FOR kDebugMode
+import 'package:flutter/foundation.dart';
 
 import 'package:artisan_ai/services/auth_service.dart';
 import 'package:artisan_ai/screens/welcome_screen.dart';
@@ -12,13 +12,13 @@ void main() {
   runApp(
     ChangeNotifierProvider(
       create: (context) => AuthService(),
-      child: const ArtisanApp(), // Added const
+      child: const ArtisanApp(),
     ),
   );
 }
 
 class ArtisanApp extends StatelessWidget {
-  const ArtisanApp({super.key}); // Added const
+  const ArtisanApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -28,21 +28,28 @@ class ArtisanApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       home: Consumer<AuthService>(
         builder: (context, authService, child) {
-          if (authService.isAuthenticated) {
-            if (kDebugMode) print("Main: User is authenticated, showing WelcomeScreen."); // kDebugMode is now defined
-            return const WelcomeScreen();
-          } else {
-            if (kDebugMode) print("Main: User is NOT authenticated, showing LoginScreen."); // kDebugMode is now defined
-            return const LoginScreen();
-          }
+          return FutureBuilder(
+            // This now waits for the AuthService to finish its initial check
+            future: authService.onInitializationComplete,
+            builder: (context, snapshot) {
+              // While waiting, show a loading indicator
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Scaffold(
+                  body: Center(child: CircularProgressIndicator()),
+                );
+              }
+              // After the check is done, decide which screen to show
+              if (authService.isAuthenticated) {
+                if (kDebugMode) print("Main: Auth state is TRUE, showing WelcomeScreen.");
+                return const WelcomeScreen();
+              } else {
+                if (kDebugMode) print("Main: Auth state is FALSE, showing LoginScreen.");
+                return const LoginScreen();
+              }
+            },
+          );
         },
       ),
-      // Define routes if you want named navigation for registration later
-      // routes: {
-      //   '/login': (ctx) => LoginScreen(),
-      //   '/welcome': (ctx) => WelcomeScreen(),
-      //   // '/register': (ctx) => RegisterScreen(), // For future
-      // },
     );
   }
 }

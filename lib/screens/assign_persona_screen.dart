@@ -23,7 +23,7 @@ class AssignPersonaScreen extends StatefulWidget {
 class AssignPersonaScreenState extends State<AssignPersonaScreen> {
   final _personaController = TextEditingController();
   String? _selectedQuickPersona;
-  final List<String> _quickPersonaOptions = [
+  final List<String> _quickPersonaOptions = const [
     "Expert Analyst", "Creative Storyteller", "Helpful Assistant",
     "Sarcastic Bot", "Objective Reporter", "Enthusiastic Teacher", "Concise Explainer"
   ];
@@ -52,24 +52,13 @@ class AssignPersonaScreenState extends State<AssignPersonaScreen> {
       personaSkippedStatus = false;
     } else { 
        ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        const SnackBar(
           content: Text('Please describe a persona, select one, or click "Skip Persona".'),
-          backgroundColor: Theme.of(context).colorScheme.error,
         ),
       );
       return; 
     }
     
-    if (!skipped && _selectedQuickPersona == null && _personaController.text.trim().isEmpty) {
-       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Please describe a quick option, or click "Skip Persona".'),
-          backgroundColor: Theme.of(context).colorScheme.error,
-        ),
-      );
-      return; 
-    }
-
     if (mounted) {
       Navigator.push(
         context,
@@ -85,7 +74,7 @@ class AssignPersonaScreenState extends State<AssignPersonaScreen> {
         ),
       );
     }
-  } // <--- THIS IS THE CORRECTED CLOSING BRACE for _onNextPressed
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -94,9 +83,9 @@ class AssignPersonaScreenState extends State<AssignPersonaScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Step 5: Assign Persona (Optional)'),
+        title: const Text('Step 5: Assign Persona (Optional)'),
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new),
+          icon: const Icon(Icons.arrow_back_ios_new),
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
@@ -110,17 +99,16 @@ class AssignPersonaScreenState extends State<AssignPersonaScreen> {
                 'Should the AI adopt a specific persona or role?',
                 style: textTheme.headlineMedium,
               ),
-              SizedBox(height: 8),
-              Text(
+              const SizedBox(height: 8),
+              const Text(
                 "This guides the AI's tone, style, and perspective. e.g., 'Act as an expert historian specializing in ancient Rome,' or 'You are a friendly and encouraging fitness coach.'",
-                style: textTheme.bodyMedium,
               ),
-              SizedBox(height: 16),
+              const SizedBox(height: 16),
               Text(
                 'Quick Personas (Optional):',
                 style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
               ),
-              SizedBox(height: 8),
+              const SizedBox(height: 8),
               Wrap(
                 spacing: 8.0,
                 runSpacing: 6.0,
@@ -142,16 +130,16 @@ class AssignPersonaScreenState extends State<AssignPersonaScreen> {
                   },
                 )).toList(),
               ),
-              SizedBox(height: 16),
+              const SizedBox(height: 16),
               Expanded(
                 child: TextFormField(
                   controller: _personaController,
-                  decoration: InputDecoration(
+                  decoration: const InputDecoration(
                     labelText: 'Describe custom persona here',
                     hintText: 'e.g., "A witty science communicator who uses analogies."',
                     alignLabelWithHint: true,
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12.0),
+                      borderRadius: BorderRadius.all(Radius.circular(12.0)),
                     ),
                   ),
                   style: textTheme.bodyLarge,
@@ -169,20 +157,20 @@ class AssignPersonaScreenState extends State<AssignPersonaScreen> {
                   },
                 ),
               ),
-              SizedBox(height: 16),
+              const SizedBox(height: 16),
               Row(
                 children: [
                   OutlinedButton.icon(
-                    icon: Icon(Icons.skip_next_outlined),
-                    label: Text('Skip Persona'),
+                    icon: const Icon(Icons.skip_next_outlined),
+                    label: const Text('Skip Persona'),
                     onPressed: () {
                       _onNextPressed(skipped: true);
                     },
                   ),
-                  Spacer(),
+                  const Spacer(),
                   ElevatedButton.icon(
-                    icon: Icon(Icons.reviews_outlined),
-                    label: Text('Next: Review Hub'),
+                    icon: const Icon(Icons.reviews_outlined),
+                    label: const Text('Next: Review Hub'),
                     onPressed: _onNextPressed, 
                   ),
                 ],

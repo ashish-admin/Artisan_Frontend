@@ -2,8 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:artisan_ai/services/auth_service.dart';
-// Import WelcomeScreen to navigate after login
-// import 'package:artisan_ai/screens/welcome_screen.dart'; // We'll handle navigation via main.dart logic
+import 'package:artisan_ai/screens/register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -20,52 +19,44 @@ class _LoginScreenState extends State<LoginScreen> {
   String? _errorMessage;
 
   Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
+    if (!_formKey.currentState!.validate()) return;
     _formKey.currentState!.save();
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
+    
+    setState(() { _isLoading = true; _errorMessage = null; });
 
     try {
+      // listen: false because we are only calling a method
       final authService = Provider.of<AuthService>(context, listen: false);
       bool success = await authService.login(_email, _password);
 
-      if (success) {
-        // Navigation will be handled by the Consumer in main.dart listening to auth changes
-        print("LoginScreen: Login successful in submit method.");
-      } else {
+      // The Consumer in main.dart handles navigation. We just handle error display here.
+      if (!success && mounted) {
         setState(() {
-          _errorMessage = "Login failed. Please check your credentials.";
+          _errorMessage = "Login failed. Please check your credentials or network connection.";
         });
       }
     } catch (error) {
-      setState(() {
-        _errorMessage = "An error occurred: ${error.toString()}";
-      });
+      if (mounted) {
+        setState(() { _errorMessage = "An error occurred: ${error.toString()}"; });
+      }
     } finally {
-      if (mounted) { // Check if the widget is still in the tree
-        setState(() {
-          _isLoading = false;
-        });
+      if (mounted) {
+        setState(() { _isLoading = false; });
       }
     }
   }
 
-  // Placeholder for navigating to a registration screen
   void _navigateToRegister() {
-    // For now, just print. Later, you'd use Navigator.push to a RegisterScreen.
-    print("Navigate to Register Screen - To be implemented");
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Registration screen - To be implemented!')),
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (context) => const RegisterScreen()),
     );
   }
 
-
   @override
   Widget build(BuildContext context) {
+    // ... (Your build method UI here, it should be correct as it's displaying) ...
+    // The logic inside _submit is the most important part.
+    // For completeness, here is the build method again.
     final textTheme = Theme.of(context).textTheme;
     final colorScheme = Theme.of(context).colorScheme;
 
@@ -79,71 +70,37 @@ class _LoginScreenState extends State<LoginScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: <Widget>[
-                Text(
-                  'Welcome to ArtisanAI',
-                  style: textTheme.displaySmall?.copyWith(color: colorScheme.primary),
-                  textAlign: TextAlign.center,
-                ),
+                Text('Welcome to ArtisanAI', style: textTheme.displaySmall?.copyWith(color: colorScheme.primary), textAlign: TextAlign.center),
                 const SizedBox(height: 8),
-                Text(
-                  'Please log in to continue',
-                  style: textTheme.titleMedium,
-                  textAlign: TextAlign.center,
-                ),
+                Text('Please log in to continue', style: textTheme.titleMedium, textAlign: TextAlign.center),
                 const SizedBox(height: 40),
                 TextFormField(
                   decoration: const InputDecoration(labelText: 'Email'),
                   keyboardType: TextInputType.emailAddress,
-                  style: textTheme.bodyLarge,
-                  validator: (value) {
-                    if (value == null || value.isEmpty || !value.contains('@')) {
-                      return 'Please enter a valid email';
-                    }
-                    return null;
-                  },
-                  onSaved: (value) {
-                    _email = value!;
-                  },
+                  validator: (value) => (value == null || value.isEmpty || !value.contains('@')) ? 'Please enter a valid email' : null,
+                  onSaved: (value) => _email = value!,
                 ),
                 const SizedBox(height: 20),
                 TextFormField(
                   decoration: const InputDecoration(labelText: 'Password'),
                   obscureText: true,
-                  style: textTheme.bodyLarge,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter your password';
-                    }
-                    return null;
-                  },
-                  onSaved: (value) {
-                    _password = value!;
-                  },
+                  validator: (value) => (value == null || value.isEmpty) ? 'Please enter your password' : null,
+                  onSaved: (value) => _password = value!,
                 ),
                 const SizedBox(height: 12),
                 if (_errorMessage != null)
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 8.0),
-                    child: Text(
-                      _errorMessage!,
-                      style: TextStyle(color: colorScheme.error, fontSize: 14),
-                      textAlign: TextAlign.center,
-                    ),
+                    child: Text(_errorMessage!, style: TextStyle(color: colorScheme.error, fontSize: 14), textAlign: TextAlign.center),
                   ),
                 const SizedBox(height: 24),
                 _isLoading
                     ? const Center(child: CircularProgressIndicator())
-                    : ElevatedButton(
-                        onPressed: _submit,
-                        child: const Text('Login'),
-                      ),
+                    : ElevatedButton(onPressed: _submit, child: const Text('Login')),
                 const SizedBox(height: 16),
                 TextButton(
-                  onPressed: _navigateToRegister, // Placeholder for registration
-                  child: Text(
-                    'Don\'t have an account? Register here',
-                    style: TextStyle(color: colorScheme.primary),
-                  ),
+                  onPressed: _navigateToRegister,
+                  child: Text('Don\'t have an account? Register here', style: TextStyle(color: colorScheme.primary)),
                 ),
               ],
             ),
