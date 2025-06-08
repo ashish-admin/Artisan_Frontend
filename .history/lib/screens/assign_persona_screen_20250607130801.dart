@@ -6,7 +6,7 @@ import 'package:artisan_ai/screens/review_prompt_screen.dart';
 import 'package:flutter/foundation.dart';
 
 class AssignPersonaScreen extends StatefulWidget {
-  // CORRECTED: Constructor no longer takes arguments
+  // No longer accepts arguments in the constructor
   const AssignPersonaScreen({super.key});
 
   @override
@@ -26,6 +26,7 @@ class AssignPersonaScreenState extends State<AssignPersonaScreen> {
     super.initState();
     final sessionService = Provider.of<PromptSessionService>(context, listen: false);
     
+    // Initialize from the session service
     final initialPersona = sessionService.sessionData.personaDescription;
     _personaController = TextEditingController(text: initialPersona);
     
@@ -66,6 +67,7 @@ class AssignPersonaScreenState extends State<AssignPersonaScreen> {
     }
     
     final sessionService = Provider.of<PromptSessionService>(context, listen: false);
+    // Update the central session state
     sessionService.updatePersona(personaDescription, personaSkippedStatus);
 
     if (kDebugMode) {
@@ -76,6 +78,7 @@ class AssignPersonaScreenState extends State<AssignPersonaScreen> {
       Navigator.push(
         context,
         MaterialPageRoute(
+          // Navigate to ReviewPromptScreen without arguments
           builder: (context) => const ReviewPromptScreen(),
         ),
       );
@@ -107,7 +110,7 @@ class AssignPersonaScreenState extends State<AssignPersonaScreen> {
               ),
               const SizedBox(height: 8),
               const Text(
-                "This guides the AI's tone, style, and perspective. e.g., 'Act as an expert historian specializing in ancient Rome.'",
+                "This guides the AI's tone, style, and perspective. e.g., 'Act as an expert historian specializing in ancient Rome,' or 'You are a friendly and encouraging fitness coach.'",
               ),
               const SizedBox(height: 16),
               Text(
@@ -137,7 +140,7 @@ class AssignPersonaScreenState extends State<AssignPersonaScreen> {
                   controller: _personaController,
                   decoration: const InputDecoration(
                     labelText: 'Describe custom persona here',
-                    hintText: 'e.g., "A witty science communicator..."',
+                    hintText: 'e.g., "A witty science communicator who uses analogies."',
                     alignLabelWithHint: true,
                   ),
                   style: textTheme.bodyLarge,
@@ -167,7 +170,7 @@ class AssignPersonaScreenState extends State<AssignPersonaScreen> {
                   ElevatedButton.icon(
                     icon: const Icon(Icons.reviews_outlined),
                     label: const Text('Next: Review Hub'),
-                    onPressed: _onNextPressed, 
+                    onPressed: () => _onNextPressed(), 
                   ),
                 ],
               ),

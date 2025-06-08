@@ -1,6 +1,6 @@
 // lib/services/auth_service.dart
 import 'dart:convert';
-import 'dart:async';
+import 'dart:async'; // Required for Completer
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -11,41 +11,48 @@ class AuthService with ChangeNotifier {
 
   String? _token;
   bool _isAuthenticated = false;
-  Completer<void>? _autoLoginCompleter;
+  final Completer<void> _autoLoginCompleter = Completer<void>();
 
   String? get token => _token;
   bool get isAuthenticated => _isAuthenticated;
-  Future<void> get onInitializationComplete => _autoLoginCompleter!.future;
+  Future<void> get onInitializationComplete => _autoLoginCompleter.future;
 
   AuthService() {
-    _autoLoginCompleter = Completer<void>();
     _tryAutoLogin();
   }
 
+  /// Checks for a stored token and verifies it with the backend.
   Future<void> _tryAutoLogin() async {
-    final storedToken = await _storage.read(key: 'auth_token');
-    if (kDebugMode) print("AuthService (_tryAutoLogin): Checking for stored token.");
-    
-    if (storedToken != null && storedToken.isNotEmpty) {
-      _token = storedToken;
-      bool isTokenValid = await verifyToken();
-      if (isTokenValid) {
-        _isAuthenticated = true;
-        if (kDebugMode) print("AuthService (_tryAutoLogin): Stored token is valid. User is authenticated.");
+    try {
+      final storedToken = await _storage.read(key: 'auth_token');
+      if (kDebugMode) print("AuthService (_tryAutoLogin): Checking for stored token.");
+      
+      if (storedToken != null && storedToken.isNotEmpty) {
+        _token = storedToken;
+        bool isTokenValid = await verifyToken();
+        if (isTokenValid) {
+          _isAuthenticated = true;
+          if (kDebugMode) print("AuthService (_tryAutoLogin): Stored token is valid. User is authenticated.");
+        } else {
+          if (kDebugMode) print("AuthService (_tryAutoLogin): Stored token is EXPIRED or INVALID. Forcing logout.");
+          await logout(); // This will set _isAuthenticated to false
+        }
       } else {
-        if (kDebugMode) print("AuthService (_tryAutoLogin): Stored token is EXPIRED or INVALID. Logging out.");
-        await logout();
+        _isAuthenticated = false;
       }
-    } else {
+    } catch (e) {
+       if (kDebugMode) print("AuthService (_tryAutoLogin): Error during auto-login: $e");
       _isAuthenticated = false;
+    } finally {
+      // Mark the initialization as complete so the FutureBuilder in main.dart can proceed.
+      if (!_autoLoginCompleter.isCompleted) {
+        _autoLoginCompleter.complete();
+      }
+      notifyListeners();
     }
-    
-    if (!_autoLoginCompleter!.isCompleted) {
-      _autoLoginCompleter!.complete();
-    }
-    notifyListeners();
   }
 
+  /// Verifies the current token by calling a protected endpoint.
   Future<bool> verifyToken() async {
     if (_token == null) return false;
     final url = Uri.parse('${AuthService.baseUrl}/auth/users/me');
@@ -57,6 +64,7 @@ class AuthService with ChangeNotifier {
     }
   }
 
+  /// Attempts to log in by calling the backend /token endpoint.
   Future<bool> login(String email, String password) async {
     final url = Uri.parse('${AuthService.baseUrl}/auth/token');
     _isAuthenticated = false;
@@ -73,6 +81,7 @@ class AuthService with ChangeNotifier {
           _token = newToken;
           await _storage.write(key: 'auth_token', value: _token);
           _isAuthenticated = true;
+          if (kDebugMode) print("AuthService (login): Login successful, new token stored.");
           notifyListeners();
           return true;
         }
@@ -84,6 +93,7 @@ class AuthService with ChangeNotifier {
     return false;
   }
   
+  /// Returns authentication headers if a token is available.
   Map<String, String> getAuthHeaders() {
     if (_token != null && _token!.isNotEmpty) {
       return {
@@ -94,6 +104,7 @@ class AuthService with ChangeNotifier {
     return {'Content-Type': 'application/json; charset=UTF-8'};
   }
 
+  /// Logs the user out by clearing state and deleting the token.
   Future<void> logout() async {
     _token = null;
     _isAuthenticated = false;
@@ -104,25 +115,9 @@ class AuthService with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<Map<String, dynamic>> _authenticatedPost(Uri url, {Object? body}) async {
-    if (!isAuthenticated) return {'success': false, 'error': 'User not authenticated'};
-    final response = await http.post(url, headers: getAuthHeaders(), body: body);
-    return _handleAuthResponse(response);
-  }
+  // --- PRIVATE AUTHENTICATED API HELPERS ---
 
-  Future<Map<String, dynamic>> _authenticatedGet(Uri url) async {
-    if (!isAuthenticated) return {'success': false, 'error': 'User not authenticated'};
-    final response = await http.get(url, headers: getAuthHeaders());
-    return _handleAuthResponse(response);
-  }
-  
-  Future<Map<String, dynamic>> _authenticatedDelete(Uri url) async {
-    if (!isAuthenticated) return {'success': false, 'error': 'User not authenticated'};
-    final response = await http.delete(url, headers: getAuthHeaders());
-    return _handleAuthResponse(response);
-  }
-  
-  Future<Map<String, dynamic>> _handleAuthResponse(http.Response response) async {
+  Future<Map<String, dynamic>> _handleResponse(http.Response response) async {
     if (response.statusCode == 401) {
       if (kDebugMode) print("AuthService: Received 401 Unauthorized. Logging out automatically.");
       await logout();
@@ -142,6 +137,38 @@ class AuthService with ChangeNotifier {
       }
     }
   }
+
+  Future<Map<String, dynamic>> _authenticatedPost(Uri url, {Object? body}) async {
+    if (!isAuthenticated) return {'success': false, 'error': 'User not authenticated'};
+    try {
+      final response = await http.post(url, headers: getAuthHeaders(), body: body);
+      return await _handleResponse(response);
+    } catch (e) {
+      return {'success': false, 'error': 'An error occurred: ${e.toString()}'};
+    }
+  }
+
+  Future<Map<String, dynamic>> _authenticatedGet(Uri url) async {
+    if (!isAuthenticated) return {'success': false, 'error': 'User not authenticated'};
+    try {
+      final response = await http.get(url, headers: getAuthHeaders());
+      return await _handleResponse(response);
+    } catch (e) {
+      return {'success': false, 'error': 'An error occurred: ${e.toString()}'};
+    }
+  }
+  
+  Future<Map<String, dynamic>> _authenticatedDelete(Uri url) async {
+    if (!isAuthenticated) return {'success': false, 'error': 'User not authenticated'};
+    try {
+      final response = await http.delete(url, headers: getAuthHeaders());
+      return await _handleResponse(response);
+    } catch (e) {
+      return {'success': false, 'error': 'An error occurred: ${e.toString()}'};
+    }
+  }
+
+  // --- PUBLIC API METHODS ---
 
   Future<Map<String, dynamic>> register(String email, String password) async {
     final url = Uri.parse('${AuthService.baseUrl}/auth/register');
@@ -166,18 +193,14 @@ class AuthService with ChangeNotifier {
     final url = Uri.parse('${AuthService.baseUrl}/agent/refine-prompt');
     return await _authenticatedPost(url, body: jsonEncode(promptData));
   }
-  
-  // --- NEW METHOD TO GET CONFIGURATIONS ---
+
   Future<Map<String, dynamic>> getConfigurations() async {
     final url = Uri.parse('${AuthService.baseUrl}/configurations/');
-    if (kDebugMode) print("AuthService (getConfigurations): Calling GET endpoint at $url");
     return await _authenticatedGet(url);
   }
 
-  // --- NEW METHOD TO DELETE A CONFIGURATION ---
   Future<Map<String, dynamic>> deleteConfiguration(int configId) async {
     final url = Uri.parse('${AuthService.baseUrl}/configurations/$configId');
-    if (kDebugMode) print("AuthService (deleteConfiguration): Calling DELETE endpoint at $url");
     return await _authenticatedDelete(url);
   }
 }

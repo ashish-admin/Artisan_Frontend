@@ -9,16 +9,17 @@ class ProvideContextScreen extends StatefulWidget {
   const ProvideContextScreen({super.key});
 
   @override
-  State<ProvideContextScreen> createState() => ProvideContextScreenState();
+  State<ProvideContextScreen> createState() => _ProvideContextScreenState();
 }
 
-class ProvideContextScreenState extends State<ProvideContextScreen> {
+class _ProvideContextScreenState extends State<ProvideContextScreen> {
   late final TextEditingController _contextController;
   final _formKey = GlobalKey<FormState>();
 
   @override
   void initState() {
     super.initState();
+    // Read initial data from the session service
     final sessionService = Provider.of<PromptSessionService>(context, listen: false);
     _contextController = TextEditingController(text: sessionService.sessionData.contextProvided);
   }
@@ -32,6 +33,7 @@ class ProvideContextScreenState extends State<ProvideContextScreen> {
   void _onNextPressed() {
     if (_formKey.currentState!.validate()) {
       final sessionService = Provider.of<PromptSessionService>(context, listen: false);
+      // Update the central session state
       sessionService.updateContext(_contextController.text.trim());
 
       if (kDebugMode) {
@@ -41,7 +43,7 @@ class ProvideContextScreenState extends State<ProvideContextScreen> {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => const DefineConstraintsScreen(),
+          builder: (context) => const DefineConstraintsScreen(), // Navigate without parameters
         ),
       );
     }
@@ -73,7 +75,7 @@ class ProvideContextScreenState extends State<ProvideContextScreen> {
                 ),
                 const SizedBox(height: 12),
                 const Text(
-                  'e.g., Target audience, specific documents to reference, key definitions, desired style influences, or even examples of what NOT to do.',
+                  'e.g., Target audience, specific documents to reference, key data points, desired style influences, or even examples of what NOT to do.',
                 ),
                 const SizedBox(height: 24),
                 Expanded(

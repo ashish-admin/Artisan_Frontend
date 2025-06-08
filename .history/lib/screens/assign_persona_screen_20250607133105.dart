@@ -24,11 +24,13 @@ class AssignPersonaScreenState extends State<AssignPersonaScreen> {
   @override
   void initState() {
     super.initState();
+    // Read initial data from the session service
     final sessionService = Provider.of<PromptSessionService>(context, listen: false);
     
     final initialPersona = sessionService.sessionData.personaDescription;
     _personaController = TextEditingController(text: initialPersona);
     
+    // Set the initial quick persona chip if it matches
     if (initialPersona.isNotEmpty && _quickPersonaOptions.contains(initialPersona)) {
       _selectedQuickPersona = initialPersona;
     }
@@ -66,6 +68,7 @@ class AssignPersonaScreenState extends State<AssignPersonaScreen> {
     }
     
     final sessionService = Provider.of<PromptSessionService>(context, listen: false);
+    // Update the central session state with the persona information
     sessionService.updatePersona(personaDescription, personaSkippedStatus);
 
     if (kDebugMode) {
@@ -73,6 +76,8 @@ class AssignPersonaScreenState extends State<AssignPersonaScreen> {
     }
 
     if (mounted) {
+      // CORRECTED: Navigate to ReviewPromptScreen without arguments.
+      // The Review screen will now get all its data from the session service.
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -107,7 +112,7 @@ class AssignPersonaScreenState extends State<AssignPersonaScreen> {
               ),
               const SizedBox(height: 8),
               const Text(
-                "This guides the AI's tone, style, and perspective. e.g., 'Act as an expert historian specializing in ancient Rome.'",
+                "This guides the AI's tone, style, and perspective. e.g., 'Act as an expert historian specializing in ancient Rome,' or 'You are a friendly and encouraging fitness coach.'",
               ),
               const SizedBox(height: 16),
               Text(
@@ -137,7 +142,7 @@ class AssignPersonaScreenState extends State<AssignPersonaScreen> {
                   controller: _personaController,
                   decoration: const InputDecoration(
                     labelText: 'Describe custom persona here',
-                    hintText: 'e.g., "A witty science communicator..."',
+                    hintText: 'e.g., "A witty science communicator who uses analogies."',
                     alignLabelWithHint: true,
                   ),
                   style: textTheme.bodyLarge,

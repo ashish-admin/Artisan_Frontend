@@ -7,12 +7,25 @@ import 'package:provider/provider.dart';
 import 'package:flutter/foundation.dart';
 
 import 'package:artisan_ai/services/auth_service.dart';
-import 'package:artisan_ai/services/prompt_session_service.dart';
 import 'package:artisan_ai/screens/welcome_screen.dart';
 
 class ReviewPromptScreen extends StatefulWidget {
-  // CORRECTED: Constructor no longer takes arguments
-  const ReviewPromptScreen({super.key});
+  final String userGoal;
+  final String selectedOutputFormat;
+  final String contextProvided;
+  final Map<String, dynamic> constraints;
+  final String personaDescription;
+  final bool personaSkipped;
+
+  const ReviewPromptScreen({
+    super.key,
+    required this.userGoal,
+    required this.selectedOutputFormat,
+    required this.contextProvided,
+    required this.constraints,
+    required this.personaDescription,
+    required this.personaSkipped,
+  });
 
   @override
   ReviewPromptScreenState createState() => ReviewPromptScreenState();
@@ -26,33 +39,23 @@ class ReviewPromptScreenState extends State<ReviewPromptScreen> {
   bool _isLoading = true;
   String? _loadingError;
 
-  // Store session data locally to avoid repeated Provider calls
-  late PromptData _sessionData;
-
   @override
   void initState() {
     super.initState();
-    _promptController = TextEditingController(text: "ArtisanAI is working its magic...");
-    
-    // Use addPostFrameCallback to ensure context is available for Provider.of
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      // Read all data from the session service once
-      _sessionData = Provider.of<PromptSessionService>(context, listen: false).sessionData;
-      _fetchDataFromBackend();
-    });
+    _promptController = TextEditingController(text: "ArtisanAI is crafting your intelligent prompt...");
+    _fetchDataFromBackend();
   }
 
   Future<void> _fetchDataFromBackend() async {
-    if (!mounted) return;
     final authService = Provider.of<AuthService>(context, listen: false);
 
     final requestData = {
-      "userGoal": _sessionData.userGoal,
-      "selectedOutputFormat": _sessionData.selectedOutputFormat,
-      "contextProvided": _sessionData.contextProvided,
-      "constraints": _sessionData.constraints,
-      "personaDescription": _sessionData.personaDescription,
-      "personaSkipped": _sessionData.personaSkipped,
+      "userGoal": widget.userGoal,
+      "selectedOutputFormat": widget.selectedOutputFormat,
+      "contextProvided": widget.contextProvided,
+      "constraints": widget.constraints,
+      "personaDescription": widget.personaDescription,
+      "personaSkipped": widget.personaSkipped,
     };
     
     try {
@@ -168,19 +171,19 @@ class ReviewPromptScreenState extends State<ReviewPromptScreen> {
 
     final Map<String, dynamic> payload = {
       "name": configName,
-      "userGoal": _sessionData.userGoal,
-      "selectedOutputFormat": _sessionData.selectedOutputFormat,
-      "contextProvided": _sessionData.contextProvided,
-      "constraints": _sessionData.constraints,
-      "personaDescription": _sessionData.personaDescription,
-      "personaSkipped": _sessionData.personaSkipped,
+      "userGoal": widget.userGoal,
+      "selectedOutputFormat": widget.selectedOutputFormat,
+      "contextProvided": widget.contextProvided,
+      "constraints": widget.constraints,
+      "personaDescription": widget.personaDescription,
+      "personaSkipped": widget.personaSkipped,
       "constructedPrompt": _promptController.text,
     };
 
     try {
-      final url = Uri.parse('${AuthService.baseUrl}/configurations/'); 
+      final String url = '${AuthService.baseUrl}/configurations/'; 
       final response = await http.post(
-        url, 
+        Uri.parse(url), 
         headers: authService.getAuthHeaders(),
         body: jsonEncode(payload),
       );
@@ -214,7 +217,6 @@ class ReviewPromptScreenState extends State<ReviewPromptScreen> {
   }
 
   void _startOver() {
-    Provider.of<PromptSessionService>(context, listen: false).clearSession();
     Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (context) => const WelcomeScreen()), (Route<dynamic> route) => false);
   }
 

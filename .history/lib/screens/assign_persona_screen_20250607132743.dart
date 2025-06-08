@@ -26,6 +26,7 @@ class AssignPersonaScreenState extends State<AssignPersonaScreen> {
     super.initState();
     final sessionService = Provider.of<PromptSessionService>(context, listen: false);
     
+    // Initialize from the session service
     final initialPersona = sessionService.sessionData.personaDescription;
     _personaController = TextEditingController(text: initialPersona);
     
@@ -66,6 +67,7 @@ class AssignPersonaScreenState extends State<AssignPersonaScreen> {
     }
     
     final sessionService = Provider.of<PromptSessionService>(context, listen: false);
+    // Update the central session state
     sessionService.updatePersona(personaDescription, personaSkippedStatus);
 
     if (kDebugMode) {
@@ -73,6 +75,7 @@ class AssignPersonaScreenState extends State<AssignPersonaScreen> {
     }
 
     if (mounted) {
+      // CORRECTED: Navigate to ReviewPromptScreen without arguments
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -107,7 +110,7 @@ class AssignPersonaScreenState extends State<AssignPersonaScreen> {
               ),
               const SizedBox(height: 8),
               const Text(
-                "This guides the AI's tone, style, and perspective. e.g., 'Act as an expert historian specializing in ancient Rome.'",
+                "This guides the AI's tone, style, and perspective. e.g., 'Act as an expert historian specializing in ancient Rome,' or 'You are a friendly and encouraging fitness coach.'",
               ),
               const SizedBox(height: 16),
               Text(
@@ -121,6 +124,11 @@ class AssignPersonaScreenState extends State<AssignPersonaScreen> {
                 children: _quickPersonaOptions.map((persona) => ChoiceChip(
                   label: Text(persona),
                   selected: _selectedQuickPersona == persona,
+                  selectedColor: chipTheme.selectedColor,
+                  labelStyle: _selectedQuickPersona == persona 
+                              ? chipTheme.secondaryLabelStyle 
+                              : chipTheme.labelStyle,
+                  backgroundColor: chipTheme.backgroundColor,
                   onSelected: (selected) {
                     setState(() {
                       _selectedQuickPersona = selected ? persona : null;
@@ -137,7 +145,7 @@ class AssignPersonaScreenState extends State<AssignPersonaScreen> {
                   controller: _personaController,
                   decoration: const InputDecoration(
                     labelText: 'Describe custom persona here',
-                    hintText: 'e.g., "A witty science communicator..."',
+                    hintText: 'e.g., "A witty science communicator who uses analogies."',
                     alignLabelWithHint: true,
                   ),
                   style: textTheme.bodyLarge,

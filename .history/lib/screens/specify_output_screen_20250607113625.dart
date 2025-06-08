@@ -1,55 +1,44 @@
 // lib/screens/specify_output_screen.dart
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:artisan_ai/services/prompt_session_service.dart';
 import 'package:artisan_ai/screens/provide_context_screen.dart';
-import 'package:flutter/foundation.dart';
 
 class SpecifyOutputScreen extends StatefulWidget {
-  const SpecifyOutputScreen({super.key});
+  final String userGoal;
+
+  const SpecifyOutputScreen({super.key, required this.userGoal});
 
   @override
-  State<SpecifyOutputScreen> createState() => SpecifyOutputScreenState();
+  _SpecifyOutputScreenState createState() => _SpecifyOutputScreenState();
 }
 
-class SpecifyOutputScreenState extends State<SpecifyOutputScreen> {
-  final List<String> _outputFormats = const [
+class _SpecifyOutputScreenState extends State<SpecifyOutputScreen> {
+  final List<String> _outputFormats = [
     "Paragraph", "Bullet Points", "Numbered List", "JSON", 
     "Code Snippet", "Email", "Short Summary", "Detailed Explanation",
-    "Creative Story", "Technical Document", "Marketing Copy"
+    "Creative Story", "Technical Document", "Marketing Copy" // Added more options
   ];
   String? _selectedOutputFormat;
 
-  @override
-  void initState() {
-    super.initState();
-    final sessionService = Provider.of<PromptSessionService>(context, listen: false);
-    _selectedOutputFormat = sessionService.sessionData.selectedOutputFormat;
-    
-    if (_selectedOutputFormat != null && !_outputFormats.contains(_selectedOutputFormat)) {
-      _selectedOutputFormat = null;
-    }
-  }
-
   void _onNextPressed() {
     if (_selectedOutputFormat != null) {
-      final sessionService = Provider.of<PromptSessionService>(context, listen: false);
-      sessionService.updateOutputFormat(_selectedOutputFormat!);
-
-      if (kDebugMode) {
-        print("Updated Session Output Format: ${sessionService.sessionData.selectedOutputFormat}");
-      }
+      print("User Goal: ${widget.userGoal}");
+      print("Selected Output Format: $_selectedOutputFormat");
 
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => const ProvideContextScreen(),
+          builder: (context) => ProvideContextScreen(
+            userGoal: widget.userGoal,
+            selectedOutputFormat: _selectedOutputFormat!,
+          ),
         ),
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select an output format.'),
+        SnackBar(
+          content: const Text('Please select an output format.'),
+          backgroundColor: Theme.of(context).colorScheme.error,
+          behavior: SnackBarBehavior.floating,
         ),
       );
     }
@@ -58,6 +47,7 @@ class SpecifyOutputScreenState extends State<SpecifyOutputScreen> {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final chipTheme = Theme.of(context).chipTheme;
 
     return Scaffold(
       appBar: AppBar(
@@ -78,22 +68,30 @@ class SpecifyOutputScreenState extends State<SpecifyOutputScreen> {
                 style: textTheme.headlineMedium,
               ),
               const SizedBox(height: 12),
-              const Text(
-                'Choose the structure that best fits the AI\'s response.',
+              Text(
+                'Choose the structure that best fits the AI\'s response. This helps the AI understand the desired presentation.',
+                style: textTheme.bodyMedium,
               ),
               const SizedBox(height: 24),
               Expanded(
                 child: ListView(
                   children: _outputFormats.map((format) => Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 5.0),
+                    padding: const EdgeInsets.symmetric(vertical: 5.0), // Increased vertical padding
                     child: ChoiceChip(
                       label: Text(format, style: textTheme.bodyLarge),
+                      selectedColor: chipTheme.selectedColor,
+                      labelStyle: _selectedOutputFormat == format 
+                                  ? chipTheme.secondaryLabelStyle?.copyWith(fontSize: textTheme.bodyLarge?.fontSize) 
+                                  : chipTheme.labelStyle?.copyWith(fontSize: textTheme.bodyLarge?.fontSize),
+                      backgroundColor: chipTheme.backgroundColor,
                       selected: _selectedOutputFormat == format,
                       onSelected: (bool selected) {
                         setState(() {
                           _selectedOutputFormat = selected ? format : null;
                         });
                       },
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      elevation: _selectedOutputFormat == format ? 2 : 0, // Add elevation when selected
                     ),
                   )).toList(),
                 ),

@@ -71,7 +71,7 @@ class DefineConstraintsScreenState extends State<DefineConstraintsScreen> {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => const AssignPersonaScreen(), // Correctly navigates without arguments
+          builder: (context) => const AssignPersonaScreen(),
         ),
       );
     }
@@ -129,6 +129,11 @@ class DefineConstraintsScreenState extends State<DefineConstraintsScreen> {
                         children: _toneOptions.map((tone) => ChoiceChip(
                           label: Text(tone),
                           selected: _selectedTone == tone,
+                          selectedColor: chipTheme.selectedColor,
+                           labelStyle: _selectedTone == tone 
+                                  ? chipTheme.secondaryLabelStyle 
+                                  : chipTheme.labelStyle,
+                          backgroundColor: chipTheme.backgroundColor,
                           onSelected: (selected) {
                             setState(() {
                               _selectedTone = selected ? tone : null;

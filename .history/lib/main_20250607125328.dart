@@ -11,7 +11,7 @@ import 'package:artisan_ai/theme/app_theme.dart';
 
 void main() {
   runApp(
-    // CORRECTED: Use MultiProvider to provide multiple services to the app.
+    // Use MultiProvider to provide multiple services
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (context) => AuthService()),

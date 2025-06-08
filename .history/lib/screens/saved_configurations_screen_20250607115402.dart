@@ -20,11 +20,13 @@ class SavedConfigurationsScreenState extends State<SavedConfigurationsScreen> {
   }
 
   Future<List<dynamic>> _fetchConfigs() {
+    // listen: false because this is in initState
     final authService = Provider.of<AuthService>(context, listen: false);
     return authService.getConfigurations().then((response) {
       if (response['success'] == true) {
         return response['data'] as List<dynamic>;
       } else {
+        // Propagate the error to be handled by the FutureBuilder
         throw Exception('Failed to load configurations: ${response['error']}');
       }
     });
@@ -39,6 +41,7 @@ class SavedConfigurationsScreenState extends State<SavedConfigurationsScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Configuration deleted successfully!'), backgroundColor: Colors.green),
         );
+        // Refresh the list after deletion
         setState(() {
           _configsFuture = _fetchConfigs();
         });
@@ -64,7 +67,7 @@ class SavedConfigurationsScreenState extends State<SavedConfigurationsScreen> {
           TextButton(
             child: const Text('Delete', style: TextStyle(color: Colors.red)),
             onPressed: () {
-              Navigator.of(ctx).pop();
+              Navigator.of(ctx).pop(); // Close the dialog
               _deleteConfig(configId);
             },
           ),
@@ -78,17 +81,6 @@ class SavedConfigurationsScreenState extends State<SavedConfigurationsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Saved Configurations'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            tooltip: 'Refresh List',
-            onPressed: () {
-              setState(() {
-                _configsFuture = _fetchConfigs();
-              });
-            },
-          )
-        ],
       ),
       body: FutureBuilder<List<dynamic>>(
         future: _configsFuture,
@@ -98,13 +90,22 @@ class SavedConfigurationsScreenState extends State<SavedConfigurationsScreen> {
           }
           
           if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}', style: TextStyle(color: Theme.of(context).colorScheme.error), textAlign: TextAlign.center));
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Text(
+                  'Error: ${snapshot.error}', 
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                  textAlign: TextAlign.center,
+                ),
+              )
+            );
           }
 
           if (!snapshot.hasData || snapshot.data!.isEmpty) {
             return const Center(
               child: Padding(
-                padding: EdgeInsets.all(24.0),
+                padding: EdgeInsets.all(16.0),
                 child: Text(
                   'You have no saved configurations yet.\nGo back and use the "Save Config" button on the review screen to save your first one!',
                   textAlign: TextAlign.center,
@@ -116,7 +117,11 @@ class SavedConfigurationsScreenState extends State<SavedConfigurationsScreen> {
           final configs = snapshot.data!;
 
           return RefreshIndicator(
-            onRefresh: _fetchConfigs,
+            onRefresh: () async {
+              setState(() {
+                _configsFuture = _fetchConfigs();
+              });
+            },
             child: ListView.builder(
               itemCount: configs.length,
               itemBuilder: (ctx, index) {

@@ -9,10 +9,10 @@ class SpecifyOutputScreen extends StatefulWidget {
   const SpecifyOutputScreen({super.key});
 
   @override
-  State<SpecifyOutputScreen> createState() => SpecifyOutputScreenState();
+  State<SpecifyOutputScreen> createState() => _SpecifyOutputScreenState();
 }
 
-class SpecifyOutputScreenState extends State<SpecifyOutputScreen> {
+class _SpecifyOutputScreenState extends State<SpecifyOutputScreen> {
   final List<String> _outputFormats = const [
     "Paragraph", "Bullet Points", "Numbered List", "JSON", 
     "Code Snippet", "Email", "Short Summary", "Detailed Explanation",
@@ -23,10 +23,11 @@ class SpecifyOutputScreenState extends State<SpecifyOutputScreen> {
   @override
   void initState() {
     super.initState();
+    // Read initial data from the session service
     final sessionService = Provider.of<PromptSessionService>(context, listen: false);
     _selectedOutputFormat = sessionService.sessionData.selectedOutputFormat;
-    
-    if (_selectedOutputFormat != null && !_outputFormats.contains(_selectedOutputFormat)) {
+    // Ensure the initial value is valid, if not, set to null
+    if (!_outputFormats.contains(_selectedOutputFormat)) {
       _selectedOutputFormat = null;
     }
   }
@@ -34,6 +35,7 @@ class SpecifyOutputScreenState extends State<SpecifyOutputScreen> {
   void _onNextPressed() {
     if (_selectedOutputFormat != null) {
       final sessionService = Provider.of<PromptSessionService>(context, listen: false);
+      // Update the central session state
       sessionService.updateOutputFormat(_selectedOutputFormat!);
 
       if (kDebugMode) {
@@ -43,7 +45,7 @@ class SpecifyOutputScreenState extends State<SpecifyOutputScreen> {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => const ProvideContextScreen(),
+          builder: (context) => const ProvideContextScreen(), // Navigate without parameters
         ),
       );
     } else {
@@ -58,6 +60,7 @@ class SpecifyOutputScreenState extends State<SpecifyOutputScreen> {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final chipTheme = Theme.of(context).chipTheme;
 
     return Scaffold(
       appBar: AppBar(
@@ -79,7 +82,7 @@ class SpecifyOutputScreenState extends State<SpecifyOutputScreen> {
               ),
               const SizedBox(height: 12),
               const Text(
-                'Choose the structure that best fits the AI\'s response.',
+                'Choose the structure that best fits the AI\'s response. This helps the AI understand the desired presentation.',
               ),
               const SizedBox(height: 24),
               Expanded(

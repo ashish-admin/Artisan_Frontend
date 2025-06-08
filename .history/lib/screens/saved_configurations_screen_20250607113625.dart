@@ -7,7 +7,8 @@ class SavedConfigurationsScreen extends StatefulWidget {
   const SavedConfigurationsScreen({super.key});
 
   @override
-  State<SavedConfigurationsScreen> createState() => SavedConfigurationsScreenState();
+  // Corrected: Make state class public
+  SavedConfigurationsScreenState createState() => SavedConfigurationsScreenState();
 }
 
 class SavedConfigurationsScreenState extends State<SavedConfigurationsScreen> {
@@ -20,11 +21,13 @@ class SavedConfigurationsScreenState extends State<SavedConfigurationsScreen> {
   }
 
   Future<List<dynamic>> _fetchConfigs() {
+    // listen: false because this is in initState
     final authService = Provider.of<AuthService>(context, listen: false);
     return authService.getConfigurations().then((response) {
       if (response['success'] == true) {
         return response['data'] as List<dynamic>;
       } else {
+        // Propagate the error to be handled by the FutureBuilder
         throw Exception('Failed to load configurations: ${response['error']}');
       }
     });
@@ -39,6 +42,7 @@ class SavedConfigurationsScreenState extends State<SavedConfigurationsScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Configuration deleted successfully!'), backgroundColor: Colors.green),
         );
+        // Refresh the list after deletion
         setState(() {
           _configsFuture = _fetchConfigs();
         });
@@ -64,7 +68,7 @@ class SavedConfigurationsScreenState extends State<SavedConfigurationsScreen> {
           TextButton(
             child: const Text('Delete', style: TextStyle(color: Colors.red)),
             onPressed: () {
-              Navigator.of(ctx).pop();
+              Navigator.of(ctx).pop(); // Close the dialog
               _deleteConfig(configId);
             },
           ),
@@ -78,17 +82,6 @@ class SavedConfigurationsScreenState extends State<SavedConfigurationsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Saved Configurations'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            tooltip: 'Refresh List',
-            onPressed: () {
-              setState(() {
-                _configsFuture = _fetchConfigs();
-              });
-            },
-          )
-        ],
       ),
       body: FutureBuilder<List<dynamic>>(
         future: _configsFuture,
@@ -98,55 +91,43 @@ class SavedConfigurationsScreenState extends State<SavedConfigurationsScreen> {
           }
           
           if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}', style: TextStyle(color: Theme.of(context).colorScheme.error), textAlign: TextAlign.center));
+            return Center(child: Text('Error: ${snapshot.error}', style: TextStyle(color: Theme.of(context).colorScheme.error)));
           }
 
           if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return const Center(
-              child: Padding(
-                padding: EdgeInsets.all(24.0),
-                child: Text(
-                  'You have no saved configurations yet.\nGo back and use the "Save Config" button on the review screen to save your first one!',
-                  textAlign: TextAlign.center,
-                ),
-              ),
-            );
+            return const Center(child: Text('You have no saved configurations yet.'));
           }
 
           final configs = snapshot.data!;
 
-          return RefreshIndicator(
-            onRefresh: _fetchConfigs,
-            child: ListView.builder(
-              itemCount: configs.length,
-              itemBuilder: (ctx, index) {
-                final config = configs[index];
-                return Card(
-                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  child: ListTile(
-                    leading: const Icon(Icons.description_outlined),
-                    title: Text(config['name'] ?? 'Untitled Configuration'),
-                    subtitle: Text(
-                      config['userGoal'] ?? 'No goal specified.',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    onTap: () {
-                      // TODO: Implement loading the configuration into the flow
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Loading "${config['name']}" - To be implemented!')),
-                      );
-                    },
-                    trailing: IconButton(
-                      icon: const Icon(Icons.delete_outline),
-                      color: Theme.of(context).colorScheme.error.withOpacity(0.7),
-                      tooltip: 'Delete Configuration',
-                      onPressed: () => _showDeleteConfirmation(config['id'], config['name'] ?? 'this configuration'),
-                    ),
+          return ListView.builder(
+            itemCount: configs.length,
+            itemBuilder: (ctx, index) {
+              final config = configs[index];
+              return Card(
+                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: ListTile(
+                  title: Text(config['name'] ?? 'Untitled Configuration'),
+                  subtitle: Text(
+                    config['userGoal'] ?? 'No goal specified.',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                );
-              },
-            ),
+                  onTap: () {
+                    // This is the next feature to implement
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Loading "${config['name']}" - To be implemented!')),
+                    );
+                  },
+                  trailing: IconButton(
+                    icon: const Icon(Icons.delete_outline),
+                    color: Theme.of(context).colorScheme.error,
+                    tooltip: 'Delete Configuration',
+                    onPressed: () => _showDeleteConfirmation(config['id'], config['name']),
+                  ),
+                ),
+              );
+            },
           );
         },
       ),
