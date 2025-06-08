@@ -2,12 +2,14 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:artisan_ai/services/auth_service.dart';
+import 'package:artisan_ai/services/prompt_session_service.dart';
+import 'package:artisan_ai/screens/review_prompt_screen.dart';
 
 class SavedConfigurationsScreen extends StatefulWidget {
   const SavedConfigurationsScreen({super.key});
 
   @override
-  State<SavedConfigurationsScreen> createState() => SavedConfigurationsScreenState();
+  SavedConfigurationsScreenState createState() => SavedConfigurationsScreenState();
 }
 
 class SavedConfigurationsScreenState extends State<SavedConfigurationsScreen> {
@@ -21,6 +23,7 @@ class SavedConfigurationsScreenState extends State<SavedConfigurationsScreen> {
 
   Future<List<dynamic>> _fetchConfigs() {
     final authService = Provider.of<AuthService>(context, listen: false);
+    // Assuming getConfigurations is a method in AuthService now
     return authService.getConfigurations().then((response) {
       if (response['success'] == true) {
         return response['data'] as List<dynamic>;
@@ -49,7 +52,7 @@ class SavedConfigurationsScreenState extends State<SavedConfigurationsScreen> {
       }
     }
   }
-
+  
   void _showDeleteConfirmation(int configId, String configName) {
     showDialog(
       context: context,
@@ -77,18 +80,7 @@ class SavedConfigurationsScreenState extends State<SavedConfigurationsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Saved Configurations'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            tooltip: 'Refresh List',
-            onPressed: () {
-              setState(() {
-                _configsFuture = _fetchConfigs();
-              });
-            },
-          )
-        ],
+        title: const Text('Load & Manage Configurations'),
       ),
       body: FutureBuilder<List<dynamic>>(
         future: _configsFuture,
@@ -96,57 +88,45 @@ class SavedConfigurationsScreenState extends State<SavedConfigurationsScreen> {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
-          
           if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}', style: TextStyle(color: Theme.of(context).colorScheme.error), textAlign: TextAlign.center));
+            return Center(child: Text('Error: ${snapshot.error}', style: TextStyle(color: Theme.of(context).colorScheme.error)));
           }
-
           if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return const Center(
-              child: Padding(
-                padding: EdgeInsets.all(24.0),
-                child: Text(
-                  'You have no saved configurations yet.\nGo back and use the "Save Config" button on the review screen to save your first one!',
-                  textAlign: TextAlign.center,
-                ),
-              ),
-            );
+            return const Center(child: Text('You have no saved configurations yet.'));
           }
-
           final configs = snapshot.data!;
-
-          return RefreshIndicator(
-            onRefresh: _fetchConfigs,
-            child: ListView.builder(
-              itemCount: configs.length,
-              itemBuilder: (ctx, index) {
-                final config = configs[index];
-                return Card(
-                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  child: ListTile(
-                    leading: const Icon(Icons.description_outlined),
-                    title: Text(config['name'] ?? 'Untitled Configuration'),
-                    subtitle: Text(
-                      config['userGoal'] ?? 'No goal specified.',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    onTap: () {
-                      // TODO: Implement loading the configuration into the flow
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Loading "${config['name']}" - To be implemented!')),
-                      );
-                    },
-                    trailing: IconButton(
-                      icon: const Icon(Icons.delete_outline),
-                      color: Theme.of(context).colorScheme.error.withOpacity(0.7),
-                      tooltip: 'Delete Configuration',
-                      onPressed: () => _showDeleteConfirmation(config['id'], config['name'] ?? 'this configuration'),
-                    ),
+          return ListView.builder(
+            itemCount: configs.length,
+            itemBuilder: (ctx, index) {
+              final config = configs[index];
+              return Card(
+                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: ListTile(
+                  title: Text(config['name'] ?? 'Untitled Configuration'),
+                  subtitle: Text(
+                    config['userGoal'] ?? 'No goal specified.',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                );
-              },
-            ),
+                  onTap: () {
+                    final sessionService = Provider.of<PromptSessionService>(context, listen: false);
+                    sessionService.loadFromMap(config);
+                    Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => const ReviewPromptScreen(),
+                        ),
+                    );
+                  },
+                  trailing: IconButton(
+                    icon: const Icon(Icons.delete_outline),
+                    color: Theme.of(context).colorScheme.error,
+                    tooltip: 'Delete Configuration',
+                    onPressed: () => _showDeleteConfirmation(config['id'], config['name']),
+                  ),
+                ),
+              );
+            },
           );
         },
       ),

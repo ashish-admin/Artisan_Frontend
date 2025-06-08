@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:artisan_ai/services/prompt_session_service.dart';
 import 'package:artisan_ai/screens/specify_output_screen.dart';
-import 'package:flutter/foundation.dart';
 
 class GoalDefinitionScreen extends StatefulWidget {
   const GoalDefinitionScreen({super.key});
@@ -14,22 +13,11 @@ class GoalDefinitionScreen extends StatefulWidget {
 
 class GoalDefinitionScreenState extends State<GoalDefinitionScreen> {
   final _formKey = GlobalKey<FormState>();
-  late final TextEditingController _goalController;
+  final _goalController = TextEditingController();
   final List<String> _quickGoals = const [
     "Write", "Summarize", "Code", "Brainstorm", "Translate", "Advise"
   ];
   String? _selectedQuickGoal;
-
-  @override
-  void initState() {
-    super.initState();
-    final sessionService = Provider.of<PromptSessionService>(context, listen: false);
-    _goalController = TextEditingController(text: sessionService.sessionData.userGoal);
-    final goalParts = sessionService.sessionData.userGoal.split(':');
-    if (goalParts.length > 1 && _quickGoals.contains(goalParts[0])) {
-      _selectedQuickGoal = goalParts[0];
-    }
-  }
 
   @override
   void dispose() {
@@ -39,25 +27,19 @@ class GoalDefinitionScreenState extends State<GoalDefinitionScreen> {
 
   void _onNextPressed() {
     if (_formKey.currentState!.validate()) {
-      final sessionService = Provider.of<PromptSessionService>(context, listen: false);
       String userGoal = _goalController.text.trim();
-      
       if (_selectedQuickGoal != null && userGoal.isEmpty) {
          userGoal = _selectedQuickGoal!;
       } else if (_selectedQuickGoal != null && userGoal.isNotEmpty && !userGoal.toLowerCase().contains(_selectedQuickGoal!.toLowerCase())) {
         userGoal = "$_selectedQuickGoal: $userGoal";
       }
       
-      sessionService.updateUserGoal(userGoal);
-
-      if (kDebugMode) {
-        print("Updated Session Goal: ${sessionService.sessionData.userGoal}");
-      }
+      Provider.of<PromptSessionService>(context, listen: false).updateGoal(userGoal);
 
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => const SpecifyOutputScreen(), // Navigates without arguments
+          builder: (context) => const SpecifyOutputScreen(),
         ),
       );
     }
@@ -90,7 +72,7 @@ class GoalDefinitionScreenState extends State<GoalDefinitionScreen> {
                 ),
                 const SizedBox(height: 12),
                 const Text(
-                  'Be specific! e.g., "Draft a persuasive marketing email for a new fitness app targeting young professionals."',
+                  'Be specific! e.g., "Draft a persuasive marketing email for a new fitness app targeting young professionals," or "Explain the concept of black holes to a high school student as if you were Carl Sagan."',
                 ),
                 const SizedBox(height: 24),
                 Text(
@@ -103,6 +85,9 @@ class GoalDefinitionScreenState extends State<GoalDefinitionScreen> {
                   runSpacing: 4.0,
                   children: _quickGoals.map((goal) => ChoiceChip(
                     label: Text(goal),
+                    selectedColor: chipTheme.selectedColor,
+                    labelStyle: _selectedQuickGoal == goal ? chipTheme.secondaryLabelStyle : chipTheme.labelStyle,
+                    backgroundColor: chipTheme.backgroundColor,
                     selected: _selectedQuickGoal == goal,
                     onSelected: (bool selected) {
                       setState(() {

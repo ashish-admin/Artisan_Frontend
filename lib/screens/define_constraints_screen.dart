@@ -3,44 +3,24 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:artisan_ai/services/prompt_session_service.dart';
 import 'package:artisan_ai/screens/assign_persona_screen.dart';
-import 'package:flutter/foundation.dart';
 
 class DefineConstraintsScreen extends StatefulWidget {
   const DefineConstraintsScreen({super.key});
 
   @override
-  DefineConstraintsScreenState createState() => DefineConstraintsScreenState();
+  _DefineConstraintsScreenState createState() => _DefineConstraintsScreenState();
 }
 
-class DefineConstraintsScreenState extends State<DefineConstraintsScreen> {
+class _DefineConstraintsScreenState extends State<DefineConstraintsScreen> {
   final _formKey = GlobalKey<FormState>();
-
-  late final TextEditingController _lengthController;
-  late final TextEditingController _includeKeywordsController;
-  late final TextEditingController _excludeKeywordsController;
+  final _lengthController = TextEditingController();
+  final _includeKeywordsController = TextEditingController();
+  final _excludeKeywordsController = TextEditingController();
 
   String? _selectedTone;
-  final List<String> _toneOptions = const ["Formal", "Casual", "Persuasive", "Neutral", "Creative", "Technical", "Humorous"];
+  final List<String> _toneOptions = ["Formal", "Casual", "Persuasive", "Neutral", "Creative", "Technical", "Humorous"];
   
-  bool _prioritizeQuality = true;
-
-  @override
-  void initState() {
-    super.initState();
-    final sessionService = Provider.of<PromptSessionService>(context, listen: false);
-    final constraints = sessionService.sessionData.constraints;
-
-    _lengthController = TextEditingController(text: constraints['length'] ?? '');
-    _includeKeywordsController = TextEditingController(text: constraints['includeKeywords'] ?? '');
-    _excludeKeywordsController = TextEditingController(text: constraints['excludeKeywords'] ?? '');
-    
-    final initialTone = constraints['tone'] as String?;
-    if (initialTone != null && _toneOptions.contains(initialTone)) {
-      _selectedTone = initialTone;
-    }
-    
-    _prioritizeQuality = constraints['prioritizeQuality'] ?? true;
-  }
+  bool _prioritizeQuality = true; 
 
   @override
   void dispose() {
@@ -52,38 +32,45 @@ class DefineConstraintsScreenState extends State<DefineConstraintsScreen> {
 
   void _onNextPressed() {
     if (_formKey.currentState!.validate()) {
-      final sessionService = Provider.of<PromptSessionService>(context, listen: false);
-
-      final Map<String, dynamic> newConstraints = {
+      _formKey.currentState!.save(); 
+      final Map<String, dynamic> constraints = {
         "length": _lengthController.text.trim(),
         "tone": _selectedTone ?? "", 
         "includeKeywords": _includeKeywordsController.text.trim(),
         "excludeKeywords": _excludeKeywordsController.text.trim(),
         "prioritizeQuality": _prioritizeQuality,
       };
-      
-      sessionService.updateConstraints(newConstraints);
 
-      if (kDebugMode) {
-        print("Updated Session Constraints: ${sessionService.sessionData.constraints}");
-      }
+      Provider.of<PromptSessionService>(context, listen: false).updateConstraints(constraints);
 
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => const AssignPersonaScreen(), // Correctly navigates without arguments
+          builder: (context) => const AssignPersonaScreen(),
         ),
       );
     }
   }
 
-  Widget _buildTextField(TextEditingController controller, String label, {String? hint, int maxLines = 1}) {
+  Widget _buildTextField(TextEditingController controller, String label, {String? hint, bool isOptional = true, int maxLines = 1}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 10.0),
       child: TextFormField(
         controller: controller,
-        decoration: InputDecoration(labelText: label, hintText: hint),
+        decoration: InputDecoration(
+          labelText: label,
+          hintText: hint ?? 'Enter ${label.toLowerCase()}',
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12.0),
+          ),
+        ),
         maxLines: maxLines,
+        validator: (value) {
+          if (!isOptional && (value == null || value.trim().isEmpty)) {
+            // return 'Please enter $label'; 
+          }
+          return null;
+        },
         style: Theme.of(context).textTheme.bodyLarge,
       ),
     );
@@ -119,7 +106,7 @@ class DefineConstraintsScreenState extends State<DefineConstraintsScreen> {
                   child: ListView(
                     padding: const EdgeInsets.only(top: 8),
                     children: [
-                      _buildTextField(_lengthController, "Desired Length (approx.)", hint: "e.g., 1 short paragraph, ~500 words", maxLines: 2),
+                      _buildTextField(_lengthController, "Desired Length (approx.)", hint: "e.g., 1 short paragraph, ~500 words, concise as possible", isOptional: true, maxLines: 2),
                       const SizedBox(height: 16),
                       Text("Tone:", style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
                       const SizedBox(height: 8),
@@ -129,6 +116,11 @@ class DefineConstraintsScreenState extends State<DefineConstraintsScreen> {
                         children: _toneOptions.map((tone) => ChoiceChip(
                           label: Text(tone),
                           selected: _selectedTone == tone,
+                          selectedColor: chipTheme.selectedColor,
+                           labelStyle: _selectedTone == tone 
+                                  ? chipTheme.secondaryLabelStyle 
+                                  : chipTheme.labelStyle,
+                          backgroundColor: chipTheme.backgroundColor,
                           onSelected: (selected) {
                             setState(() {
                               _selectedTone = selected ? tone : null;
@@ -137,8 +129,8 @@ class DefineConstraintsScreenState extends State<DefineConstraintsScreen> {
                         )).toList(),
                       ),
                       const SizedBox(height: 16),
-                      _buildTextField(_includeKeywordsController, "Keywords/Phrases to Include", hint: "Comma-separated", maxLines:2),
-                      _buildTextField(_excludeKeywordsController, "Keywords/Phrases to Exclude", hint: "Comma-separated", maxLines:2),
+                      _buildTextField(_includeKeywordsController, "Keywords/Phrases to Include", hint: "Comma-separated", isOptional: true, maxLines:2),
+                      _buildTextField(_excludeKeywordsController, "Keywords/Phrases to Exclude", hint: "Comma-separated", isOptional: true, maxLines:2),
                       const SizedBox(height: 16),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -159,8 +151,8 @@ class DefineConstraintsScreenState extends State<DefineConstraintsScreen> {
                          padding: const EdgeInsets.only(left: 4.0, right: 4.0),
                          child: Text(
                           _prioritizeQuality 
-                              ? "Focus will be on the most thorough, accurate, and well-reasoned response."
-                              : "Focus will be on faster, potentially more concise or cost-effective responses.",
+                              ? "Focus will be on the most thorough, accurate, and well-reasoned response, potentially taking more time or resources."
+                              : "Focus will be on faster, potentially more concise or cost-effective responses, which might be less nuanced.",
                           style: textTheme.bodySmall,
                       ),
                        ),

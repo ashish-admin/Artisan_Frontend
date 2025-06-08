@@ -1,79 +1,101 @@
 // lib/services/prompt_session_service.dart
-import 'package:flutter/foundation.dart';
-
-// Helper class to hold the data for a single co-piloting session.
-class PromptData {
-  String userGoal;
-  String selectedOutputFormat;
-  String contextProvided;
-  Map<String, dynamic> constraints;
-  String personaDescription;
-  bool personaSkipped;
-
-  PromptData({
-    this.userGoal = '',
-    this.selectedOutputFormat = '',
-    this.contextProvided = '',
-    Map<String, dynamic>? constraints,
-    this.personaDescription = '',
-    this.personaSkipped = false,
-  }) : constraints = constraints ?? {'prioritizeQuality': true}; // Ensure constraints is never null
-}
+import 'package:flutter/material.dart';
+import 'dart:convert';
 
 class PromptSessionService with ChangeNotifier {
-  PromptData _sessionData = PromptData();
+  // Data for the current prompt session
+  String userGoal = '';
+  String selectedOutputFormat = '';
+  String contextProvided = '';
+  Map<String, dynamic> constraints = {};
+  String personaDescription = '';
+  bool personaSkipped = false;
+  String constructedPrompt = '';
+  
+  // To track which saved config is being edited, if any
+  int? configurationId;
 
-  PromptData get sessionData => _sessionData;
+  // Method to update the service with data from a loaded configuration
+  void loadFromMap(Map<String, dynamic> config) {
+    userGoal = config['userGoal'] ?? '';
+    selectedOutputFormat = config['selectedOutputFormat'] ?? '';
+    contextProvided = config['contextProvided'] ?? '';
 
-  // Method to update the entire session, e.g., when loading a saved config
-  void loadSession(Map<String, dynamic> savedConfig) {
-    _sessionData = PromptData(
-      userGoal: savedConfig['userGoal'] ?? '',
-      selectedOutputFormat: savedConfig['selectedOutputFormat'] ?? '',
-      contextProvided: savedConfig['contextProvided'] ?? '',
-      constraints: Map<String, dynamic>.from(savedConfig['constraints'] ?? {'prioritizeQuality': true}),
-      personaDescription: savedConfig['personaDescription'] ?? '',
-      personaSkipped: savedConfig['personaSkipped'] ?? false,
-    );
-    if (kDebugMode) {
-      print("PromptSessionService: Session loaded with name '${savedConfig['name']}'.");
+    // The backend saves constraints as a JSON string. We need to decode it.
+    if (config['constraints_json'] != null && config['constraints_json'] is String) {
+        try {
+            constraints = Map<String, dynamic>.from(jsonDecode(config['constraints_json']));
+        } catch (e) {
+            constraints = {}; // Reset if decoding fails
+        }
+    } else if (config['constraints'] is Map) {
+        constraints = Map<String, dynamic>.from(config['constraints']);
+    } else {
+        constraints = {};
     }
-    notifyListeners(); // Notify listeners that data has changed
-  }
-
-  // Method to clear the session, e.g., when starting a new prompt
-  void clearSession() {
-    _sessionData = PromptData();
-    if (kDebugMode) {
-      print("PromptSessionService: Session cleared.");
-    }
+    
+    personaDescription = config['personaDescription'] ?? '';
+    personaSkipped = config['personaSkipped'] ?? false;
+    constructedPrompt = config['constructedPrompt'] ?? '';
+    configurationId = config['id'];
+    
     notifyListeners();
   }
 
-  // Individual update methods for each step of the co-pilot
-  void updateUserGoal(String goal) {
-    _sessionData.userGoal = goal;
+  // Update methods for each step of the flow
+  void updateGoal(String goal) {
+    userGoal = goal;
     notifyListeners();
   }
 
   void updateOutputFormat(String format) {
-    _sessionData.selectedOutputFormat = format;
+    selectedOutputFormat = format;
     notifyListeners();
   }
 
   void updateContext(String context) {
-    _sessionData.contextProvided = context;
+    contextProvided = context;
     notifyListeners();
   }
-  
+
   void updateConstraints(Map<String, dynamic> newConstraints) {
-    _sessionData.constraints = newConstraints;
+    constraints = newConstraints;
     notifyListeners();
   }
 
   void updatePersona(String description, bool skipped) {
-    _sessionData.personaDescription = description;
-    _sessionData.personaSkipped = skipped;
+    personaDescription = description;
+    personaSkipped = skipped;
     notifyListeners();
+  }
+  
+  void updateConstructedPrompt(String prompt) {
+      constructedPrompt = prompt;
+      notifyListeners();
+  }
+
+  // Resets the service to its initial state for a new prompt.
+  void clear() {
+    userGoal = '';
+    selectedOutputFormat = '';
+    contextProvided = '';
+    constraints = {};
+    personaDescription = '';
+    personaSkipped = false;
+    constructedPrompt = '';
+    configurationId = null;
+    notifyListeners();
+  }
+
+  // Helper to package data for API requests
+  Map<String, dynamic> toApiRequestData() {
+    return {
+      "userGoal": userGoal,
+      "selectedOutputFormat": selectedOutputFormat,
+      "contextProvided": contextProvided,
+      "constraints": constraints,
+      "personaDescription": personaDescription,
+      "personaSkipped": personaSkipped,
+    };
   }
 }

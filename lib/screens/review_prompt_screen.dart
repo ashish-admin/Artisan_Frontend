@@ -11,7 +11,6 @@ import 'package:artisan_ai/services/prompt_session_service.dart';
 import 'package:artisan_ai/screens/welcome_screen.dart';
 
 class ReviewPromptScreen extends StatefulWidget {
-  // CORRECTED: Constructor no longer takes arguments
   const ReviewPromptScreen({super.key});
 
   @override
@@ -26,34 +25,49 @@ class ReviewPromptScreenState extends State<ReviewPromptScreen> {
   bool _isLoading = true;
   String? _loadingError;
 
-  // Store session data locally to avoid repeated Provider calls
-  late PromptData _sessionData;
-
   @override
   void initState() {
     super.initState();
-    _promptController = TextEditingController(text: "ArtisanAI is working its magic...");
-    
-    // Use addPostFrameCallback to ensure context is available for Provider.of
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      // Read all data from the session service once
-      _sessionData = Provider.of<PromptSessionService>(context, listen: false).sessionData;
+    final session = Provider.of<PromptSessionService>(context, listen: false);
+    _promptController = TextEditingController(text: session.constructedPrompt.isNotEmpty ? session.constructedPrompt : "ArtisanAI is crafting your intelligent prompt...");
+    // If the session already has a constructed prompt (from being loaded), don't fetch again unless needed.
+    if (session.constructedPrompt.isEmpty) {
       _fetchDataFromBackend();
-    });
+    } else {
+        _isLoading = false;
+        // You might want to fetch LLM suggestions again even for loaded prompts
+        _fetchLlmSuggestions(); 
+    }
+  }
+  
+  Future<void> _fetchLlmSuggestions() async {
+      final authService = Provider.of<AuthService>(context, listen: false);
+      final sessionService = Provider.of<PromptSessionService>(context, listen: false);
+
+      final response = await authService.getLlmSuggestions(sessionService.toApiRequestData());
+      if (mounted) {
+          if(response['success']) {
+              final suggestions = response['data']['suggestions'] as List;
+              if (suggestions.isNotEmpty) {
+                _llmSuggestion = suggestions[0]['llm_name'] ?? 'Suggestion not available';
+                _llmSuggestionReason = suggestions[0]['reason'] ?? '';
+              } else {
+                _llmSuggestion = "No specific suggestion found";
+                _llmSuggestionReason = response['data']['notes'] ?? "Try refining your inputs for a better match.";
+              }
+          } else {
+              _llmSuggestion = "Error";
+              _llmSuggestionReason = "Could not retrieve LLM suggestions.";
+          }
+          setState(() {});
+      }
   }
 
   Future<void> _fetchDataFromBackend() async {
-    if (!mounted) return;
     final authService = Provider.of<AuthService>(context, listen: false);
+    final sessionService = Provider.of<PromptSessionService>(context, listen: false);
 
-    final requestData = {
-      "userGoal": _sessionData.userGoal,
-      "selectedOutputFormat": _sessionData.selectedOutputFormat,
-      "contextProvided": _sessionData.contextProvided,
-      "constraints": _sessionData.constraints,
-      "personaDescription": _sessionData.personaDescription,
-      "personaSkipped": _sessionData.personaSkipped,
-    };
+    final requestData = sessionService.toApiRequestData();
     
     try {
       final responses = await Future.wait([
@@ -69,6 +83,7 @@ class ReviewPromptScreenState extends State<ReviewPromptScreen> {
         if (promptResponse['success'] == true) {
           final craftedPrompt = promptResponse['data']['refined_prompt'];
           _promptController.text = craftedPrompt;
+          sessionService.updateConstructedPrompt(craftedPrompt);
         } else {
           finalError += "Error crafting prompt: ${promptResponse['error']}\n";
           _promptController.text = "Could not generate prompt. Please try again.";
@@ -122,6 +137,8 @@ class ReviewPromptScreenState extends State<ReviewPromptScreen> {
 
   Future<void> _saveConfiguration() async {
     final authService = Provider.of<AuthService>(context, listen: false);
+    final sessionService = Provider.of<PromptSessionService>(context, listen: false);
+    
     if (!authService.isAuthenticated) {
       if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: const Text('You must be logged in to save.'), backgroundColor: Theme.of(context).colorScheme.error));
       return;
@@ -165,22 +182,17 @@ class ReviewPromptScreenState extends State<ReviewPromptScreen> {
     if (configName == null || configName.isEmpty) return; 
 
     if(mounted) setState(() { _isSaving = true; });
-
+    
     final Map<String, dynamic> payload = {
+      ...sessionService.toApiRequestData(),
       "name": configName,
-      "userGoal": _sessionData.userGoal,
-      "selectedOutputFormat": _sessionData.selectedOutputFormat,
-      "contextProvided": _sessionData.contextProvided,
-      "constraints": _sessionData.constraints,
-      "personaDescription": _sessionData.personaDescription,
-      "personaSkipped": _sessionData.personaSkipped,
       "constructedPrompt": _promptController.text,
     };
 
     try {
-      final url = Uri.parse('${AuthService.baseUrl}/configurations/'); 
+      const String url = '${AuthService.baseUrl}/configurations/'; 
       final response = await http.post(
-        url, 
+        Uri.parse(url), 
         headers: authService.getAuthHeaders(),
         body: jsonEncode(payload),
       );
@@ -198,7 +210,6 @@ class ReviewPromptScreenState extends State<ReviewPromptScreen> {
             try { final errorData = jsonDecode(response.body); detail = errorData['detail'] ?? detail; } catch (_) {}
           }
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error saving: $detail'), backgroundColor: Theme.of(context).colorScheme.error));
-          if (kDebugMode) { print("Error saving configuration: ${response.statusCode} - ${response.body}"); }
       }
     } catch (e) {
       if (kDebugMode) { print("Exception during save: $e"); }
@@ -214,7 +225,7 @@ class ReviewPromptScreenState extends State<ReviewPromptScreen> {
   }
 
   void _startOver() {
-    Provider.of<PromptSessionService>(context, listen: false).clearSession();
+    Provider.of<PromptSessionService>(context, listen: false).clear();
     Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (context) => const WelcomeScreen()), (Route<dynamic> route) => false);
   }
 
@@ -227,7 +238,7 @@ class ReviewPromptScreenState extends State<ReviewPromptScreen> {
       appBar: AppBar(
         title: const Text('ArtisanAI Suggestion Hub'),
         leading: Navigator.canPop(context) ? IconButton(icon: const Icon(Icons.arrow_back_ios_new), onPressed: () => Navigator.of(context).pop()) : null,
-        actions: [IconButton(icon: const Icon(Icons.refresh), tooltip: 'Start Over', onPressed: _startOver)],
+        actions: [IconButton(icon: const Icon(Icons.home), tooltip: 'Go Home', onPressed: _startOver)],
       ),
       body: SafeArea(
         child: Padding(

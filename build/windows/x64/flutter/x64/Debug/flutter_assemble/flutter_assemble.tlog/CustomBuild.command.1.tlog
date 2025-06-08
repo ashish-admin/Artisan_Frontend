@@ -1,0 +1,28 @@
+^C:\USERS\AMUKT\ARTISAN_AI\BUILD\WINDOWS\X64\CMAKEFILES\984249094F62FC0603ED7F5BCD728C18\FLUTTER_WINDOWS.DLL.RULE
+setlocal
+"C:\Program Files\Microsoft Visual Studio\2022\Preview\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -E env FLUTTER_ROOT=C:\Users\amukt\Flutter\flutter PROJECT_DIR=C:\Users\amukt\artisan_ai FLUTTER_ROOT=C:\Users\amukt\Flutter\flutter FLUTTER_EPHEMERAL_DIR=C:\Users\amukt\artisan_ai\windows\flutter\ephemeral PROJECT_DIR=C:\Users\amukt\artisan_ai FLUTTER_TARGET=C:\Users\amukt\artisan_ai\lib\main.dart DART_DEFINES=RkxVVFRFUl9WRVJTSU9OPTMuMzIuMQ==,RkxVVFRFUl9DSEFOTkVMPXN0YWJsZQ==,RkxVVFRFUl9HSVRfVVJMPWh0dHBzOi8vZ2l0aHViLmNvbS9mbHV0dGVyL2ZsdXR0ZXIuZ2l0,RkxVVFRFUl9GUkFNRVdPUktfUkVWSVNJT049YjI1MzA1YTg4Mw==,RkxVVFRFUl9FTkdJTkVfUkVWSVNJT049MTQyNWU1ZTllYw==,RkxVVFRFUl9EQVJUX1ZFUlNJT049My44LjE= DART_OBFUSCATION=false TRACK_WIDGET_CREATION=true TREE_SHAKE_ICONS=false PACKAGE_CONFIG=C:\Users\amukt\artisan_ai\.dart_tool\package_config.json C:/Users/amukt/Flutter/flutter/packages/flutter_tools/bin/tool_backend.bat windows-x64 Debug
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^C:\USERS\AMUKT\ARTISAN_AI\BUILD\WINDOWS\X64\CMAKEFILES\F34380C423B5D43AB4633631D43695B3\FLUTTER_ASSEMBLE.RULE
+setlocal
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^C:\USERS\AMUKT\ARTISAN_AI\WINDOWS\FLUTTER\CMAKELISTS.TXT
+setlocal
+"C:\Program Files\Microsoft Visual Studio\2022\Preview\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -SC:/Users/amukt/artisan_ai/windows -BC:/Users/amukt/artisan_ai/build/windows/x64 --check-stamp-file C:/Users/amukt/artisan_ai/build/windows/x64/flutter/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd

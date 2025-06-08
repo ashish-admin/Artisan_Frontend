@@ -2,11 +2,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:artisan_ai/services/prompt_session_service.dart';
-import 'package:artisan_ai/screens/review_prompt_screen.dart';
-import 'package:flutter/foundation.dart';
+import 'package:artisan_ai/screens/review_prompt_screen.dart'; 
 
 class AssignPersonaScreen extends StatefulWidget {
-  // CORRECTED: Constructor no longer takes arguments
   const AssignPersonaScreen({super.key});
 
   @override
@@ -14,25 +12,12 @@ class AssignPersonaScreen extends StatefulWidget {
 }
 
 class AssignPersonaScreenState extends State<AssignPersonaScreen> {
-  late final TextEditingController _personaController;
+  final _personaController = TextEditingController();
   String? _selectedQuickPersona;
   final List<String> _quickPersonaOptions = const [
     "Expert Analyst", "Creative Storyteller", "Helpful Assistant",
     "Sarcastic Bot", "Objective Reporter", "Enthusiastic Teacher", "Concise Explainer"
   ];
-
-  @override
-  void initState() {
-    super.initState();
-    final sessionService = Provider.of<PromptSessionService>(context, listen: false);
-    
-    final initialPersona = sessionService.sessionData.personaDescription;
-    _personaController = TextEditingController(text: initialPersona);
-    
-    if (initialPersona.isNotEmpty && _quickPersonaOptions.contains(initialPersona)) {
-      _selectedQuickPersona = initialPersona;
-    }
-  }
 
   @override
   void dispose() {
@@ -42,20 +27,14 @@ class AssignPersonaScreenState extends State<AssignPersonaScreen> {
 
   void _onNextPressed({bool skipped = false}) {
     String personaDescription;
-    bool personaSkippedStatus;
-
     if (skipped) {
-      personaSkippedStatus = true;
-      personaDescription = "Not specified (Skipped)";
+      personaDescription = "Not specified";
     } else if (_selectedQuickPersona != null && _personaController.text.trim().isEmpty) {
       personaDescription = _selectedQuickPersona!;
-      personaSkippedStatus = false;
     } else if (_personaController.text.trim().isNotEmpty) {
       personaDescription = _personaController.text.trim();
-      personaSkippedStatus = false;
     } else if (_selectedQuickPersona != null) { 
       personaDescription = _selectedQuickPersona!;
-      personaSkippedStatus = false;
     } else { 
        ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -65,14 +44,8 @@ class AssignPersonaScreenState extends State<AssignPersonaScreen> {
       return; 
     }
     
-    final sessionService = Provider.of<PromptSessionService>(context, listen: false);
-    sessionService.updatePersona(personaDescription, personaSkippedStatus);
-
-    if (kDebugMode) {
-      print("Updated Session Persona: ${sessionService.sessionData.personaDescription}, Skipped: ${sessionService.sessionData.personaSkipped}");
-    }
-
     if (mounted) {
+      Provider.of<PromptSessionService>(context, listen: false).updatePersona(personaDescription, skipped);
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -107,7 +80,7 @@ class AssignPersonaScreenState extends State<AssignPersonaScreen> {
               ),
               const SizedBox(height: 8),
               const Text(
-                "This guides the AI's tone, style, and perspective. e.g., 'Act as an expert historian specializing in ancient Rome.'",
+                "This guides the AI's tone, style, and perspective. e.g., 'Act as an expert historian specializing in ancient Rome,' or 'You are a friendly and encouraging fitness coach.'",
               ),
               const SizedBox(height: 16),
               Text(
@@ -121,6 +94,11 @@ class AssignPersonaScreenState extends State<AssignPersonaScreen> {
                 children: _quickPersonaOptions.map((persona) => ChoiceChip(
                   label: Text(persona),
                   selected: _selectedQuickPersona == persona,
+                  selectedColor: chipTheme.selectedColor,
+                  labelStyle: _selectedQuickPersona == persona 
+                              ? chipTheme.secondaryLabelStyle 
+                              : chipTheme.labelStyle,
+                  backgroundColor: chipTheme.backgroundColor,
                   onSelected: (selected) {
                     setState(() {
                       _selectedQuickPersona = selected ? persona : null;
@@ -137,8 +115,11 @@ class AssignPersonaScreenState extends State<AssignPersonaScreen> {
                   controller: _personaController,
                   decoration: const InputDecoration(
                     labelText: 'Describe custom persona here',
-                    hintText: 'e.g., "A witty science communicator..."',
+                    hintText: 'e.g., "A witty science communicator who uses analogies."',
                     alignLabelWithHint: true,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.all(Radius.circular(12.0)),
+                    ),
                   ),
                   style: textTheme.bodyLarge,
                   textAlignVertical: TextAlignVertical.top,
@@ -161,7 +142,9 @@ class AssignPersonaScreenState extends State<AssignPersonaScreen> {
                   OutlinedButton.icon(
                     icon: const Icon(Icons.skip_next_outlined),
                     label: const Text('Skip Persona'),
-                    onPressed: () => _onNextPressed(skipped: true),
+                    onPressed: () {
+                      _onNextPressed(skipped: true);
+                    },
                   ),
                   const Spacer(),
                   ElevatedButton.icon(
